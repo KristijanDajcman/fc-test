@@ -12,7 +12,7 @@ public:
     std::string getOpeningTag();
     std::string getClosingTag();
     void addChild(HTMLElement child);
-    void addAttribute(std::string attribute);
+    void addAttribute(std::string attribute_name, std::string value);
     std::string getHTML();
 
 private:

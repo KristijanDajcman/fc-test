@@ -17,7 +17,7 @@ std::string HTMLElement::getClosingTag()
 
 void HTMLElement::addChild(HTMLElement child) { if (!empty) children.push_back(child); }
 
-void HTMLElement::addAttribute(std::string attribute) { attributes += " " + attribute; }
+void HTMLElement::addAttribute(std::string attribute_name, std::string value) { attributes += " " + attribute_name + "=" + value; }
 
 std::string HTMLElement::getHTML()
 {
