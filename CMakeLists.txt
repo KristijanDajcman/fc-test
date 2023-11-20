@@ -12,6 +12,8 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(nlohmann_json)
 
-add_executable(run main.cpp)
+include_directories(src include)
+
+add_executable(run src/main.cpp src/HTMLElement.cpp)
 
 target_link_libraries(run PRIVATE nlohmann_json::nlohmann_json)

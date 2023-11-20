@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <nlohmann/json.hpp>
+#include "HTMLElement.hpp"
 
 std::string read_json_string(std::string path)
 {
@@ -21,7 +22,8 @@ std::string read_json_string(std::string path)
     return json_string;
 }
 
-int main() {
+int main()
+{
     std::string path = "../primeri/pageNotFound.json";
     std::string json_string;
     // read the json file
@@ -48,12 +50,29 @@ int main() {
     }
 
     // Print the entire JSON object
-    std::cout << json_data.dump(4) << std::endl;
+    //std::cout << json_data.dump(4) << std::endl;
 
     // Access specific fields dynamically
-    if (json_data.contains("head")) {
-        std::cout << "head: " << json_data["head"] << std::endl;
-    }
+    //if (json_data.contains("head")) {
+    //    std::cout << "head: " << json_data["head"] << std::endl;
+    //}
+
+
+    HTMLElement body = HTMLElement("body", false);
+
+    HTMLElement div = HTMLElement("div", false);
+    div.addAttribute("id=\"mything\"");
+
+
+    HTMLElement img = HTMLElement("img", true);
+    img.addAttribute("href=\"/stylesheets/style.css\"");
+
+    HTMLElement myTag = HTMLElement("mytag", false);
+    div.addChild(myTag);
+    
+    div.addChild(img);
+    body.addChild(div);
+    std::cout << body.getHTML();
 
     return 0;
 }
