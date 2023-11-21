@@ -24,6 +24,11 @@ std::string HTMLElement::getHTML()
     std::string html = getOpeningTag();
     for (auto child : children)
         html += child.getHTML();
+    html += content;
     html += getClosingTag();
     return html;
 }
+
+void HTMLElement::setContent(std::string content) { this->content = content; }
+
+void HTMLElement::setEmpty(bool empty) { this->empty = empty; }

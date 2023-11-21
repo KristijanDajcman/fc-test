@@ -6,7 +6,7 @@
 #include "HTMLElement.hpp"
 #include <vector>
 
-std::string read_json_string(std::string path)
+std::string readJSON(std::string path)
 {
     std::ifstream file(path);
 
@@ -23,7 +23,19 @@ std::string read_json_string(std::string path)
     return json_string;
 }
 
-HTMLElement json_to_html(const nlohmann::json &data)
+std::string complexAttribute(nlohmann::json attribute)
+{
+    std::string attribute_string = "";
+    for (auto i : attribute.items())
+    {
+        std::cout << i.key() << std::endl;
+        attribute_string += i.key() + "=" + i.value().dump() + ", ";
+    }
+    attribute_string = attribute_string.substr(0, attribute_string.size() - 2);
+    return attribute_string;
+}
+
+std::vector<HTMLElement> toHTML(const nlohmann::json &data)
 {
     std::vector<HTMLElement> document_elements;
 
@@ -39,18 +51,48 @@ HTMLElement json_to_html(const nlohmann::json &data)
     if (data.contains("language"))
         html.addAttribute("lang", data["language"]);
 
-    
-    // Build the head
+    // Build the head. Head has mostly empty elements and elements without attributes
     HTMLElement head = HTMLElement("head", false);
     if (data.contains("head"))
     {
+        const nlohmann::json headObject = data["head"];
+        // std::cout << headObject.dump(4) << std::endl;
+        for (auto &entry : headObject.items())
+        {
+            const std::string key = entry.key();
+            const nlohmann::json value = entry.value();
 
-
+            HTMLElement headElement = HTMLElement(key, false);
+            // Is the HTML element empty with attributes or not empty without attributes
+            if (value.is_object())
+            {
+                // HTML has attributes but no content
+                headElement.setEmpty(true);
+                for (auto &attribute : value.items())
+                {
+                    if (attribute.value().is_object())
+                        headElement.addAttribute(attribute.key(), complexAttribute(attribute.value()));
+                    else
+                        headElement.addAttribute(attribute.key(), attribute.value().dump());
+                }
+            }
+            else
+            {
+                // HTML has content but no attributes
+                headElement.setContent(value);
+            }
+            head.addChild(headElement);
+        }
         html.addChild(head);
+
     }
 
+    // Build the body
+    if (data.contains("body"))
+    {
+    }
     document_elements.push_back(html);
-    return HTMLElement("foo", false);
+    return document_elements;
 }
 
 int main()
@@ -60,7 +102,7 @@ int main()
     // read the json file
     try
     {
-        json_string = read_json_string(path);
+        json_string = readJSON(path);
     }
     catch (const std::exception &e)
     {
@@ -81,15 +123,10 @@ int main()
         return 1;
     }
 
-    json_to_html(json_data);
+    auto holder = toHTML(json_data);
 
-    // Print the entire JSON object
-    // std::cout << json_data.dump(4) << std::endl;
-
-    // Access specific fields dynamically
-    // if (json_data.contains("head")) {
-    //    std::cout << "head: " << json_data["head"] << std::endl;
-    //}
+    for (auto i : holder)
+        std::cout << i.getHTML() << std::endl;
 
     return 0;
 }
