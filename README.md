@@ -8,9 +8,9 @@ Implementacija naj predpostavlja, da so vhodne in izhodne datoteke v isti mapi k
 Za interpretacijo JSON datoteke se lahko uporabi poljubna knjižnica, medtem ko je pretvorba v HTML zaželjeno, da se implementira samostojno. Pripete so tudi primerne JSON in HTML datoteke za preverjanje pravilnosti rešitve.
 
 ## Build instructions
-`mkdir build
-cd build
-cmake ..
-make`
+`mkdir build`
+`cd build`
+`cmake ..`
+`make`
 Run with:
 `./run`
