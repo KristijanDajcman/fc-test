@@ -7,6 +7,8 @@
 class HTMLElement
 {
 public:
+    HTMLElement();
+    HTMLElement(std::string tagname);
     HTMLElement(std::string tagname, bool empty);
 
     std::string getOpeningTag();

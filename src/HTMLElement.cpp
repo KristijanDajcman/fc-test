@@ -1,6 +1,9 @@
 #include "HTMLElement.hpp"
 
-HTMLElement::HTMLElement(std::string tagname, bool empty) : tagname(tagname), empty(empty) { attributes = ""; }
+HTMLElement::HTMLElement() {};
+HTMLElement::HTMLElement(std::string tagname) : tagname(tagname), empty(false) {}
+HTMLElement::HTMLElement(std::string tagname, bool empty) : tagname(tagname), empty(empty) {}
+
 
 std::string HTMLElement::getOpeningTag()
 {

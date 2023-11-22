@@ -23,16 +23,75 @@ std::string readJSON(std::string path)
     return json_string;
 }
 
-std::string complexAttribute(nlohmann::json attribute)
+std::string complexAttributeHead(nlohmann::json attribute)
 {
     std::string attribute_string = "";
     for (auto i : attribute.items())
-    {
-        std::cout << i.key() << std::endl;
         attribute_string += i.key() + "=" + i.value().dump() + ", ";
-    }
     attribute_string = attribute_string.substr(0, attribute_string.size() - 2);
     return attribute_string;
+}
+
+std::string complexAttributeBody(nlohmann::json attribute)
+{
+    std::cout << "In Attributes " << attribute.dump() << std::endl;
+    std::string attribute_string = "";
+    for (auto i : attribute.items())
+        attribute_string += i.key() + ":" + i.value().dump() + ";";
+    
+    // Remove " from string
+    std::string clean_string = "";
+    for (char c : attribute_string) {
+        if (c != '"') {
+            clean_string += c;
+        }
+    }
+    clean_string = clean_string.substr(0, clean_string.size() - 1);
+    return '"' + clean_string + '"';
+}
+
+void bodyToHTML(nlohmann::json jsonObject, HTMLElement &parent)
+{
+    std::cout << jsonObject.dump() << std::endl;
+    for (const auto &entry : jsonObject.items())
+    {
+
+        const std::string key = entry.key();
+        const nlohmann::json value = entry.value();
+        if (key == "attributes")
+        {
+            std::cout << "parent: " << parent.getOpeningTag() << " -> ";
+            std::cout << key << " " << value << std::endl;
+            if (value.is_object())
+            {
+                nlohmann::json attributes = value;
+                for (auto attribute : attributes.items())
+                {
+                    if (attribute.value().is_object())
+                        parent.addAttribute(attribute.key(), complexAttributeBody(attribute.value()));
+                    else
+                        parent.addAttribute(attribute.key(), attribute.value().dump());
+                }
+            }
+        }
+        else
+        {
+            HTMLElement child = HTMLElement(key);
+            std::cout << key << " -> " << value << std::endl;
+            if (value.is_object())
+            {
+                // has nested attributes or elements
+                bodyToHTML(value, child);
+                parent.addChild(child);
+            }
+            else
+            {
+                // has content
+                child.setContent(value);
+                parent.addChild(child);
+            }
+        }
+    }
 }
 
 std::vector<HTMLElement> toHTML(const nlohmann::json &data)
@@ -42,17 +101,17 @@ std::vector<HTMLElement> toHTML(const nlohmann::json &data)
     // Check the doctype
     if (data.contains("doctype"))
     {
-        HTMLElement doctype = HTMLElement("!DOCTYPE", true);
-        doctype.addAttribute("", data["doctype"]);
+        std::string dType = data["doctype"];
+        HTMLElement doctype = HTMLElement("!DOCTYPE " + dType, true);
         document_elements.push_back(doctype);
     }
 
-    HTMLElement html = HTMLElement("html", false);
+    HTMLElement html = HTMLElement("html");
     if (data.contains("language"))
         html.addAttribute("lang", data["language"]);
 
     // Build the head. Head has mostly empty elements and elements without attributes
-    HTMLElement head = HTMLElement("head", false);
+    /*HTMLElement head = HTMLElement("head");
     if (data.contains("head"))
     {
         const nlohmann::json headObject = data["head"];
@@ -62,7 +121,7 @@ std::vector<HTMLElement> toHTML(const nlohmann::json &data)
             const std::string key = entry.key();
             const nlohmann::json value = entry.value();
 
-            HTMLElement headElement = HTMLElement(key, false);
+            HTMLElement headElement = HTMLElement(key);
             // Is the HTML element empty with attributes or not empty without attributes
             if (value.is_object())
             {
@@ -71,7 +130,7 @@ std::vector<HTMLElement> toHTML(const nlohmann::json &data)
                 for (auto &attribute : value.items())
                 {
                     if (attribute.value().is_object())
-                        headElement.addAttribute(attribute.key(), complexAttribute(attribute.value()));
+                        headElement.addAttribute(attribute.key(), complexAttributeHead(attribute.value()));
                     else
                         headElement.addAttribute(attribute.key(), attribute.value().dump());
                 }
@@ -84,12 +143,14 @@ std::vector<HTMLElement> toHTML(const nlohmann::json &data)
             head.addChild(headElement);
         }
         html.addChild(head);
+    }*/
 
-    }
-
+    HTMLElement body = HTMLElement("body");
     // Build the body
     if (data.contains("body"))
     {
+        bodyToHTML(data["body"], body);
+        html.addChild(body);
     }
     document_elements.push_back(html);
     return document_elements;
@@ -97,6 +158,7 @@ std::vector<HTMLElement> toHTML(const nlohmann::json &data)
 
 int main()
 {
+    //std::string path = "../primeri/helloWorld.json";
     std::string path = "../primeri/pageNotFound.json";
     std::string json_string;
     // read the json file
