@@ -8,13 +8,13 @@ HTMLElement::HTMLElement(std::string tagname, bool empty) : tagname(tagname), em
 std::string HTMLElement::getOpeningTag()
 {
     if (!empty)
-        return "<" + tagname + attributes + ">";
-    return "<" + tagname + attributes + "/>";
+        return "<" + tagname + attributes + ">\n";
+    return "<" + tagname + attributes + ">\n";
 }
 std::string HTMLElement::getClosingTag()
 {
     if (!empty)
-        return "</" + tagname + ">";
+        return "\n</" + tagname + ">";
     return "";
 }
 

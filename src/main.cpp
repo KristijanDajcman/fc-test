@@ -4,7 +4,10 @@
 #include <sstream>
 #include <nlohmann/json.hpp>
 #include "HTMLElement.hpp"
+#include <filesystem>
 #include <vector>
+
+namespace fs = std::filesystem;
 
 std::string readJSON(std::string path)
 {
@@ -34,15 +37,16 @@ std::string complexAttributeHead(nlohmann::json attribute)
 
 std::string complexAttributeBody(nlohmann::json attribute)
 {
-    std::cout << "In Attributes " << attribute.dump() << std::endl;
     std::string attribute_string = "";
     for (auto i : attribute.items())
         attribute_string += i.key() + ":" + i.value().dump() + ";";
-    
+
     // Remove " from string
     std::string clean_string = "";
-    for (char c : attribute_string) {
-        if (c != '"') {
+    for (char c : attribute_string)
+    {
+        if (c != '"')
+        {
             clean_string += c;
         }
     }
@@ -52,16 +56,12 @@ std::string complexAttributeBody(nlohmann::json attribute)
 
 void bodyToHTML(nlohmann::json jsonObject, HTMLElement &parent)
 {
-    std::cout << jsonObject.dump() << std::endl;
     for (const auto &entry : jsonObject.items())
     {
-
         const std::string key = entry.key();
         const nlohmann::json value = entry.value();
         if (key == "attributes")
         {
-            std::cout << "parent: " << parent.getOpeningTag() << " -> ";
-            std::cout << key << " " << value << std::endl;
             if (value.is_object())
             {
                 nlohmann::json attributes = value;
@@ -94,6 +94,84 @@ void bodyToHTML(nlohmann::json jsonObject, HTMLElement &parent)
     }
 }
 
+void metaExceptional(nlohmann::json values, HTMLElement& parent)
+{
+    for (auto& value : values.items())
+    {
+        HTMLElement meta = HTMLElement("meta", true);
+        meta.addAttribute(value.key(), value.value().dump());
+        parent.addChild(meta);
+    }
+}
+
+void headToHTML(nlohmann::json jsonObject, HTMLElement &parent)
+{
+    for (auto &entry : jsonObject.items())
+    {
+        const std::string key = entry.key();
+        const nlohmann::json value = entry.value();
+
+        std::cout << key << std::endl;
+        if (key == "meta")
+        {
+            metaExceptional(value, parent);
+            break;
+        }
+        
+        // Is the HTML element empty with attributes or not empty without attributes
+        if (value.is_object())
+        {
+            HTMLElement child = HTMLElement(key, true);
+            // HTML has attributes but no content
+            for (auto &attribute : value.items())
+            {
+                if (attribute.value().is_object())
+                    child.addAttribute(attribute.key(), complexAttributeHead(attribute.value()));
+                else
+                    child.addAttribute(attribute.key(), attribute.value().dump());
+            }
+            parent.addChild(child);
+        }
+        else
+        {
+            if (value.is_array())
+            {
+                // Handle array elements
+                for (const auto &arrayElement : value)
+                {
+                    if (arrayElement.is_object())
+                    {
+                        HTMLElement arrayChild = HTMLElement(key, true);
+
+                        for (auto &attribute : arrayElement.items())
+                        {
+                            if (attribute.value().is_object())
+                                arrayChild.addAttribute(attribute.key(), complexAttributeHead(attribute.value()));
+                            else
+                                arrayChild.addAttribute(attribute.key(), attribute.value().dump());
+                        }
+
+                        parent.addChild(arrayChild);
+                    }
+                    else
+                    {
+                        HTMLElement arrayChild = HTMLElement(key);
+                        arrayChild.setContent(arrayElement);
+                        parent.addChild(arrayChild);
+                    }
+                }
+            }
+            else
+            {
+                HTMLElement child = HTMLElement(key);
+                // HTML has content but no attributes
+                child.setContent(value);
+                parent.addChild(child);
+            }
+        }
+    }
+}
+
 std::vector<HTMLElement> toHTML(const nlohmann::json &data)
 {
     std::vector<HTMLElement> document_elements;
@@ -111,44 +189,18 @@ std::vector<HTMLElement> toHTML(const nlohmann::json &data)
         html.addAttribute("lang", data["language"]);
 
     // Build the head. Head has mostly empty elements and elements without attributes
-    /*HTMLElement head = HTMLElement("head");
     if (data.contains("head"))
     {
-        const nlohmann::json headObject = data["head"];
-        // std::cout << headObject.dump(4) << std::endl;
-        for (auto &entry : headObject.items())
-        {
-            const std::string key = entry.key();
-            const nlohmann::json value = entry.value();
-
-            HTMLElement headElement = HTMLElement(key);
-            // Is the HTML element empty with attributes or not empty without attributes
-            if (value.is_object())
-            {
-                // HTML has attributes but no content
-                headElement.setEmpty(true);
-                for (auto &attribute : value.items())
-                {
-                    if (attribute.value().is_object())
-                        headElement.addAttribute(attribute.key(), complexAttributeHead(attribute.value()));
-                    else
-                        headElement.addAttribute(attribute.key(), attribute.value().dump());
-                }
-            }
-            else
-            {
-                // HTML has content but no attributes
-                headElement.setContent(value);
-            }
-            head.addChild(headElement);
-        }
+        HTMLElement head = HTMLElement("head");
+        headToHTML(data["head"], head);
         html.addChild(head);
-    }*/
+    }
 
-    HTMLElement body = HTMLElement("body");
+    
     // Build the body
     if (data.contains("body"))
     {
+        HTMLElement body = HTMLElement("body");
         bodyToHTML(data["body"], body);
         html.addChild(body);
     }
@@ -156,10 +208,29 @@ std::vector<HTMLElement> toHTML(const nlohmann::json &data)
     return document_elements;
 }
 
+void writeHTML(std::string name, std::string data)
+{
+    std::ofstream outputFile(name + ".html");
+
+    if (outputFile.is_open()) {
+        outputFile << data;
+
+        outputFile.close();
+
+        std::cout << "JSON has been converted to HTML." << std::endl;
+    } else {
+        std::cerr << "Unable to open the file for writing." << std::endl;
+    }
+}
+
 int main()
 {
-    //std::string path = "../primeri/helloWorld.json";
-    std::string path = "../primeri/pageNotFound.json";
+    
+    std::string path;
+    std:: cout << "Enter path: ";
+    std::cin >> path;
+
+    // std::string path = "../primeri/pageNotFound.json";
     std::string json_string;
     // read the json file
     try
