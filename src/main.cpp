@@ -4,10 +4,7 @@
 #include <sstream>
 #include <nlohmann/json.hpp>
 #include "HTMLElement.hpp"
-#include <filesystem>
 #include <vector>
-
-namespace fs = std::filesystem;
 
 std::string readJSON(std::string path)
 {
@@ -31,8 +28,15 @@ std::string complexAttributeHead(nlohmann::json attribute)
     std::string attribute_string = "";
     for (auto i : attribute.items())
         attribute_string += i.key() + "=" + i.value().dump() + ", ";
-    attribute_string = attribute_string.substr(0, attribute_string.size() - 2);
-    return attribute_string;
+        
+    std::string clean_string = "";
+    for (char c : attribute_string)
+    {
+        if (c != '"')
+            clean_string += c;
+    }
+    clean_string = clean_string.substr(0, clean_string.size() - 2);
+    return '"' + clean_string + '"';
 }
 
 std::string complexAttributeBody(nlohmann::json attribute)
@@ -77,7 +81,6 @@ void bodyToHTML(nlohmann::json jsonObject, HTMLElement &parent)
         else
         {
             HTMLElement child = HTMLElement(key);
-            std::cout << key << " -> " << value << std::endl;
             if (value.is_object())
             {
                 // has nested attributes or elements
@@ -99,7 +102,16 @@ void metaExceptional(nlohmann::json values, HTMLElement& parent)
     for (auto& value : values.items())
     {
         HTMLElement meta = HTMLElement("meta", true);
-        meta.addAttribute(value.key(), value.value().dump());
+        if (value.value().is_object())
+        {
+            meta.addAttribute("name", value.key());
+            meta.addAttribute("content", complexAttributeHead(value.value()));
+        }
+        else
+        {
+            meta.addAttribute("name", value.key());
+            meta.addAttribute("content", value.value());
+        }
         parent.addChild(meta);
     }
 }
@@ -111,11 +123,10 @@ void headToHTML(nlohmann::json jsonObject, HTMLElement &parent)
         const std::string key = entry.key();
         const nlohmann::json value = entry.value();
 
-        std::cout << key << std::endl;
         if (key == "meta")
         {
             metaExceptional(value, parent);
-            break;
+            continue;;
         }
         
         // Is the HTML element empty with attributes or not empty without attributes
@@ -225,7 +236,6 @@ void writeHTML(std::string name, std::string data)
 
 int main()
 {
-    
     std::string path;
     std:: cout << "Enter path: ";
     std::cin >> path;
@@ -258,8 +268,16 @@ int main()
 
     auto holder = toHTML(json_data);
 
+    std::string html_string;
     for (auto i : holder)
-        std::cout << i.getHTML() << std::endl;
+        html_string += i.getHTML();
+
+
+    std::string out;
+    std:: cout << "Enter output path: ";
+    std::cin >> out;
+    
+    writeHTML(out, html_string);
 
     return 0;
 }
